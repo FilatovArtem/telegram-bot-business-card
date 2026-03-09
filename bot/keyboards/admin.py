@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton as Btn
 from aiogram.types import InlineKeyboardMarkup
 
-from bot.db.models import Booking, BookingStatus
+from bot.db.models import Booking, BookingStatus, Category, Product
 
 STATUS_LABELS: dict[str, str] = {
     BookingStatus.NEW: "\U0001f195 Новые",
@@ -23,6 +23,7 @@ def admin_menu_kb() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [Btn(text="\U0001f4ca Статистика", callback_data="admin:stats")],
             [Btn(text="\U0001f4cb Заявки", callback_data="admin:bookings")],
+            [Btn(text="\U0001f4e6 Каталог", callback_data="admin:catalog")],
             [Btn(text="\U0001f4e2 Рассылка", callback_data="admin:broadcast")],
             [Btn(text="\u2b05\ufe0f Меню", callback_data="main_menu")],
         ]
@@ -64,3 +65,43 @@ def booking_card_kb(booking: Booking) -> InlineKeyboardMarkup:
     ]
     buttons.append([Btn(text="\u2b05\ufe0f Назад", callback_data=f"admin:bookings:{booking.status}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+# ── Catalog management ────────────────────────────────────────────
+
+
+def admin_categories_kb(categories: list[Category]) -> InlineKeyboardMarkup:
+    buttons = [[Btn(text=f"{c.emoji} {c.name}", callback_data=f"admin:cat:{c.id}")] for c in categories]
+    buttons.append([Btn(text="\u2795 Добавить категорию", callback_data="admin:cat:add")])
+    buttons.append([Btn(text="\u2b05\ufe0f Админ-панель", callback_data="admin:menu")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def admin_category_kb(category: Category) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [Btn(text="\U0001f4e6 Товары", callback_data=f"admin:cat:products:{category.id}")],
+            [Btn(text="\u270f\ufe0f Редактировать", callback_data=f"admin:cat:edit:{category.id}")],
+            [Btn(text="\U0001f5d1 Удалить", callback_data=f"admin:cat:delete:{category.id}")],
+            [Btn(text="\u2b05\ufe0f Каталог", callback_data="admin:catalog")],
+        ]
+    )
+
+
+def admin_products_kb(products: list[Product], category_id: int) -> InlineKeyboardMarkup:
+    buttons = [
+        [Btn(text=f"{p.name} — {p.price}\u20bd", callback_data=f"admin:prod:{p.id}")] for p in products
+    ]
+    buttons.append([Btn(text="\u2795 Добавить товар", callback_data=f"admin:prod:add:{category_id}")])
+    buttons.append([Btn(text="\u2b05\ufe0f Категория", callback_data=f"admin:cat:{category_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def admin_product_kb(product: Product) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [Btn(text="\u270f\ufe0f Редактировать", callback_data=f"admin:prod:edit:{product.id}")],
+            [Btn(text="\U0001f5d1 Удалить", callback_data=f"admin:prod:delete:{product.id}")],
+            [Btn(text="\u2b05\ufe0f Товары", callback_data=f"admin:cat:products:{product.category_id}")],
+        ]
+    )

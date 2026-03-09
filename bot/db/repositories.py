@@ -99,6 +99,83 @@ async def update_booking_status(session: AsyncSession, booking_id: int, status: 
     return booking
 
 
+# ── Catalog management ─────────────────────────────────────────────
+
+
+async def get_category(session: AsyncSession, category_id: int) -> Category | None:
+    return await session.get(Category, category_id)
+
+
+async def create_category(session: AsyncSession, name: str, emoji: str = "") -> Category:
+    category = Category(name=name, emoji=emoji)
+    session.add(category)
+    await session.commit()
+    await session.refresh(category)
+    return category
+
+
+async def update_category(session: AsyncSession, category_id: int, name: str, emoji: str) -> Category | None:
+    category = await session.get(Category, category_id)
+    if category is None:
+        return None
+    category.name = name
+    category.emoji = emoji
+    await session.commit()
+    return category
+
+
+async def delete_category(session: AsyncSession, category_id: int) -> bool:
+    category = await session.get(Category, category_id)
+    if category is None:
+        return False
+    products = await get_products_by_category(session, category_id)
+    if products:
+        return False
+    await session.delete(category)
+    await session.commit()
+    return True
+
+
+async def create_product(
+    session: AsyncSession,
+    category_id: int,
+    name: str,
+    description: str,
+    price: int,
+) -> Product:
+    product = Product(category_id=category_id, name=name, description=description, price=price)
+    session.add(product)
+    await session.commit()
+    await session.refresh(product)
+    return product
+
+
+async def update_product(
+    session: AsyncSession,
+    product_id: int,
+    name: str,
+    description: str,
+    price: int,
+) -> Product | None:
+    product = await session.get(Product, product_id)
+    if product is None:
+        return None
+    product.name = name
+    product.description = description
+    product.price = price
+    await session.commit()
+    return product
+
+
+async def delete_product(session: AsyncSession, product_id: int) -> bool:
+    product = await session.get(Product, product_id)
+    if product is None:
+        return False
+    await session.delete(product)
+    await session.commit()
+    return True
+
+
 async def count_bookings(session: AsyncSession) -> int:
     result = await session.execute(select(func.count(Booking.id)))
     return result.scalar_one()
