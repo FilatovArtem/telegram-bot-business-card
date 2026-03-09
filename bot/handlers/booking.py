@@ -32,10 +32,9 @@ SERVICES = [
 
 @router.callback_query(F.data == "booking")
 async def cb_booking_start(callback: CallbackQuery, state: FSMContext) -> None:
-    services_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(SERVICES))
+    services_text = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(SERVICES))
     await callback.message.edit_text(  # type: ignore[union-attr]
-        f"📝 <b>Запись на заказ</b>\n\n"
-        f"Выберите услугу (отправьте номер):\n{services_text}",
+        f"📝 <b>Запись на заказ</b>\n\nВыберите услугу (отправьте номер):\n{services_text}",
         parse_mode="HTML",
     )
     await state.set_state(BookingForm.service)
@@ -43,9 +42,7 @@ async def cb_booking_start(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data.startswith("order:"))
-async def cb_order_product(
-    callback: CallbackQuery, session: AsyncSession, state: FSMContext
-) -> None:
+async def cb_order_product(callback: CallbackQuery, session: AsyncSession, state: FSMContext) -> None:
     product_id = int(callback.data.split(":")[1])  # type: ignore[union-attr]
     product = await get_product(session, product_id)
     if product is None:
@@ -89,10 +86,7 @@ async def process_name(message: Message, state: FSMContext) -> None:
 async def process_phone(message: Message, state: FSMContext) -> None:
     phone = (message.text or "").strip()
     if not validate_phone(phone):
-        await message.answer(
-            "❌ Неверный формат телефона.\n"
-            "Введите в формате: +7 (XXX) XXX-XX-XX"
-        )
+        await message.answer("❌ Неверный формат телефона.\nВведите в формате: +7 (XXX) XXX-XX-XX")
         return
     await state.update_data(phone=phone)
     await message.answer("📅 Укажите желаемую дату (например: 15 марта, следующая пятница):")
@@ -122,9 +116,7 @@ async def process_date(message: Message, state: FSMContext) -> None:
 
 
 @router.message(BookingForm.confirm)
-async def process_confirm(
-    message: Message, state: FSMContext, session: AsyncSession, bot: Bot
-) -> None:
+async def process_confirm(message: Message, state: FSMContext, session: AsyncSession, bot: Bot) -> None:
     text = (message.text or "").strip().lower()
     if text not in ("да", "yes", "д", "y"):
         await state.clear()
@@ -148,8 +140,7 @@ async def process_confirm(
     )
 
     await message.answer(
-        f"✅ <b>Заявка #{booking.id} принята!</b>\n"
-        f"Мы свяжемся с вами для подтверждения.",
+        f"✅ <b>Заявка #{booking.id} принята!</b>\nМы свяжемся с вами для подтверждения.",
         reply_markup=back_to_menu_kb(),
         parse_mode="HTML",
     )
@@ -164,8 +155,6 @@ async def process_confirm(
             username=message.from_user.username if message.from_user else None,
         )
         with contextlib.suppress(Exception):
-            await bot.send_message(
-                settings.admin_chat_id, notification, parse_mode="HTML"
-            )
+            await bot.send_message(settings.admin_chat_id, notification, parse_mode="HTML")
 
     await state.clear()

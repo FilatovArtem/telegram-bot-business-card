@@ -32,9 +32,11 @@ def main_menu_kb() -> InlineKeyboardMarkup:
 def back_to_menu_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [Btn(
-                text="\u2b05\ufe0f \u0413\u043b\u0430\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e",
-                callback_data="main_menu",
-            )],
+            [
+                Btn(
+                    text="\u2b05\ufe0f \u0413\u043b\u0430\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e",
+                    callback_data="main_menu",
+                )
+            ],
         ]
     )

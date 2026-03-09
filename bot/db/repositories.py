@@ -6,6 +6,7 @@ from bot.db.models import Booking, Category, Product, User
 
 # ── Users ──────────────────────────────────────────────────────────
 
+
 async def upsert_user(
     session: AsyncSession,
     user_id: int,
@@ -30,6 +31,7 @@ async def count_users(session: AsyncSession) -> int:
 
 # ── Catalog ────────────────────────────────────────────────────────
 
+
 async def get_categories(session: AsyncSession) -> list[Category]:
     result = await session.execute(
         select(Category).options(selectinload(Category.products)).order_by(Category.id)
@@ -49,6 +51,7 @@ async def get_product(session: AsyncSession, product_id: int) -> Product | None:
 
 
 # ── Bookings ───────────────────────────────────────────────────────
+
 
 async def create_booking(
     session: AsyncSession,
@@ -72,9 +75,7 @@ async def create_booking(
 
 
 async def get_recent_bookings(session: AsyncSession, limit: int = 10) -> list[Booking]:
-    result = await session.execute(
-        select(Booking).order_by(Booking.created_at.desc()).limit(limit)
-    )
+    result = await session.execute(select(Booking).order_by(Booking.created_at.desc()).limit(limit))
     return list(result.scalars().all())
 
 

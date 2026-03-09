@@ -48,11 +48,7 @@ async def _show_product(
     category_id: int,
 ) -> None:
     product = products[idx]
-    text = (
-        f"<b>{product.name}</b>\n\n"
-        f"{product.description}\n\n"
-        f"💰 Цена: {product.price} руб."
-    )
+    text = f"<b>{product.name}</b>\n\n{product.description}\n\n💰 Цена: {product.price} руб."
     kb = product_card_kb(product, idx, len(products), category_id)
 
     if product.image_url:
