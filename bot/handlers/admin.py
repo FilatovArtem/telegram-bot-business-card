@@ -1,14 +1,13 @@
 import contextlib
 
 from aiogram import Bot, F, Router
-from aiogram.filters import BaseFilter, Command
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.config import settings
 from bot.db.models import User
 from bot.db.repositories import (
     count_bookings,
@@ -17,6 +16,7 @@ from bot.db.repositories import (
     get_bookings_by_status,
     update_booking_status,
 )
+from bot.filters import AdminFilter
 from bot.keyboards.admin import (
     STATUS_LABELS,
     admin_menu_kb,
@@ -26,12 +26,6 @@ from bot.keyboards.admin import (
 )
 from bot.keyboards.main_menu import back_to_menu_kb
 from bot.services.booking import format_status_change_notification, format_status_label
-
-
-class AdminFilter(BaseFilter):
-    async def __call__(self, event: Message | CallbackQuery) -> bool:
-        return event.from_user is not None and event.from_user.id in settings.admin_ids
-
 
 router = Router()
 router.message.filter(AdminFilter())
