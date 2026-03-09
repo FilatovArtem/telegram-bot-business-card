@@ -6,14 +6,8 @@ def main_menu_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                Btn(
-                    text="\ud83c\udf70 \u041a\u0430\u0442\u0430\u043b\u043e\u0433",
-                    callback_data="catalog",
-                ),
-                Btn(
-                    text="\ud83d\udcdd \u0417\u0430\u043f\u0438\u0441\u0430\u0442\u044c\u0441\u044f",
-                    callback_data="booking",
-                ),
+                Btn(text="\U0001f370 Каталог", callback_data="catalog"),
+                Btn(text="\U0001f4dd Записаться", callback_data="catalog"),
             ],
             [
                 Btn(
