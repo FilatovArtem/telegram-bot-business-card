@@ -1,7 +1,15 @@
 from datetime import datetime
+from enum import StrEnum
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+class BookingStatus(StrEnum):
+    NEW = "new"
+    CONFIRMED = "confirmed"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
 class Base(DeclarativeBase):
@@ -51,6 +59,7 @@ class Booking(Base):
     client_name: Mapped[str] = mapped_column(String(128))
     phone: Mapped[str] = mapped_column(String(20))
     desired_date: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default=BookingStatus.NEW, server_default="new")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="bookings")

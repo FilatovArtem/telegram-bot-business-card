@@ -79,6 +79,26 @@ async def get_recent_bookings(session: AsyncSession, limit: int = 10) -> list[Bo
     return list(result.scalars().all())
 
 
+async def get_booking(session: AsyncSession, booking_id: int) -> Booking | None:
+    return await session.get(Booking, booking_id)
+
+
+async def get_bookings_by_status(session: AsyncSession, status: str) -> list[Booking]:
+    result = await session.execute(
+        select(Booking).where(Booking.status == status).order_by(Booking.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def update_booking_status(session: AsyncSession, booking_id: int, status: str) -> Booking | None:
+    booking = await session.get(Booking, booking_id)
+    if booking is None:
+        return None
+    booking.status = status
+    await session.commit()
+    return booking
+
+
 async def count_bookings(session: AsyncSession) -> int:
     result = await session.execute(select(func.count(Booking.id)))
     return result.scalar_one()
