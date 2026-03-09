@@ -24,6 +24,11 @@ async def upsert_user(
     return user
 
 
+async def get_all_user_ids(session: AsyncSession) -> list[int]:
+    result = await session.execute(select(User.id))
+    return [row[0] for row in result.all()]
+
+
 async def count_users(session: AsyncSession) -> int:
     result = await session.execute(select(func.count(User.id)))
     return result.scalar_one()

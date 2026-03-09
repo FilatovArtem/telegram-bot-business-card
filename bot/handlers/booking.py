@@ -1,6 +1,7 @@
 import contextlib
 
 from aiogram import Bot, F, Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
@@ -19,6 +20,12 @@ class BookingForm(StatesGroup):
     phone = State()
     date = State()
     confirm = State()
+
+
+@router.message(Command("cancel"), BookingForm.__all_states__)
+async def cmd_cancel_booking(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("\u274c Заявка отменена.", reply_markup=back_to_menu_kb())
 
 
 @router.callback_query(F.data.startswith("order:"))

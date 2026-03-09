@@ -11,10 +11,10 @@ router = Router()
 @router.callback_query(F.data == "catalog")
 async def cb_catalog(callback: CallbackQuery, session: AsyncSession) -> None:
     categories = await get_categories(session)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "📋 <b>Выберите категорию:</b>",
+    await callback.message.delete()  # type: ignore[union-attr]
+    await callback.message.answer(  # type: ignore[union-attr]
+        "\U0001f4cb <b>Выберите категорию:</b>",
         reply_markup=categories_kb(categories),
-        parse_mode="HTML",
     )
     await callback.answer()
 
@@ -48,20 +48,19 @@ async def _show_product(
     category_id: int,
 ) -> None:
     product = products[idx]
-    text = f"<b>{product.name}</b>\n\n{product.description}\n\n💰 Цена: {product.price} руб."
+    text = f"<b>{product.name}</b>\n\n{product.description}\n\n\U0001f4b0 Цена: {product.price} руб."
     kb = product_card_kb(product, idx, len(products), category_id)
 
+    await callback.message.delete()  # type: ignore[union-attr]
+
     if product.image_url:
-        # If product has an image, send photo instead
-        await callback.message.delete()  # type: ignore[union-attr]
         await callback.message.answer_photo(  # type: ignore[union-attr]
             photo=product.image_url,
             caption=text,
             reply_markup=kb,
-            parse_mode="HTML",
         )
     else:
-        await callback.message.edit_text(  # type: ignore[union-attr]
-            text, reply_markup=kb, parse_mode="HTML"
+        await callback.message.answer(  # type: ignore[union-attr]
+            text, reply_markup=kb
         )
     await callback.answer()

@@ -25,13 +25,12 @@ def run_migrations() -> None:
     command.upgrade(alembic_cfg, "head")
 
 
-
-async def main() -> None:
-    run_migrations()
+async def seed_db() -> None:
     async with async_session() as session:
         await seed_catalog(session)
-    logger.info("Database initialized and seeded")
 
+
+async def main() -> None:
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode="HTML"),
@@ -47,4 +46,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    run_migrations()
+    asyncio.run(seed_db())
+    logger.info("Database initialized and seeded")
     asyncio.run(main())

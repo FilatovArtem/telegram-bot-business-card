@@ -1,4 +1,5 @@
 from aiogram import F, Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
@@ -20,6 +21,7 @@ from bot.filters import AdminFilter
 from bot.keyboards.admin import (
     admin_categories_kb,
     admin_category_kb,
+    admin_menu_kb,
     admin_product_kb,
     admin_products_kb,
 )
@@ -49,6 +51,20 @@ class ProductEditForm(StatesGroup):
     name = State()
     description = State()
     price = State()
+
+
+_ALL_STATES = [
+    *CategoryForm.__all_states__,
+    *CategoryEditForm.__all_states__,
+    *ProductForm.__all_states__,
+    *ProductEditForm.__all_states__,
+]
+
+
+@router.message(Command("cancel"), *_ALL_STATES)
+async def cmd_cancel_catalog(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("\u274c Действие отменено.", reply_markup=admin_menu_kb())
 
 
 # ── Category list ─────────────────────────────────────────────────

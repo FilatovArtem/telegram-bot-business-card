@@ -5,13 +5,12 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.db.models import User
 from bot.db.repositories import (
     count_bookings,
     count_users,
+    get_all_user_ids,
     get_booking,
     get_bookings_by_status,
     update_booking_status,
@@ -164,8 +163,7 @@ async def process_broadcast(message: Message, state: FSMContext, session: AsyncS
         await message.answer("Рассылка отменена.", reply_markup=back_to_menu_kb())
         return
 
-    result = await session.execute(select(User.id))
-    user_ids = [row[0] for row in result.all()]
+    user_ids = await get_all_user_ids(session)
 
     sent = 0
     failed = 0
