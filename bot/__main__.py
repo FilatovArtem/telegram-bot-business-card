@@ -10,6 +10,7 @@ from bot.config import settings
 from bot.db.engine import async_session
 from bot.handlers import setup_routers
 from bot.middlewares.db import DbSessionMiddleware
+from bot.services.business import load_business_config
 from bot.services.catalog import seed_catalog
 
 logging.basicConfig(
@@ -36,6 +37,8 @@ async def main() -> None:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode="HTML"),
     )
+    bot["business"] = load_business_config()
+
     dp = Dispatcher()
 
     dp.update.middleware(DbSessionMiddleware(session_pool=async_session))
