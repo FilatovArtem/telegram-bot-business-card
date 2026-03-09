@@ -1,6 +1,28 @@
 import re
 
+from bot.db.models import BookingStatus
+
 PHONE_PATTERN = re.compile(r"^(\+7|8)\s?\(?\d{3}\)?\s?\d{3}[\s-]?\d{2}[\s-]?\d{2}$")
+
+STATUS_USER_LABELS: dict[str, str] = {
+    BookingStatus.NEW: "Новая",
+    BookingStatus.CONFIRMED: "Подтверждена",
+    BookingStatus.COMPLETED: "Завершена",
+    BookingStatus.CANCELLED: "Отменена",
+}
+
+
+def format_status_label(status: str) -> str:
+    return STATUS_USER_LABELS.get(status, status)
+
+
+def format_status_change_notification(booking_id: int, service: str, new_status: str) -> str:
+    label = format_status_label(new_status)
+    return (
+        f"\U0001f514 <b>Статус заявки #{booking_id} изменён</b>\n\n"
+        f"\U0001f382 {service}\n"
+        f"\U0001f4cb Статус: {label}"
+    )
 
 
 def validate_phone(phone: str) -> bool:
