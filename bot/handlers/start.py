@@ -1,4 +1,4 @@
-from aiogram import Bot, F, Router
+from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,12 +10,8 @@ from bot.services.business import BusinessConfig
 router = Router()
 
 
-def _biz(bot: Bot) -> BusinessConfig:
-    return bot["business"]
-
-
 @router.message(CommandStart())
-async def cmd_start(message: Message, session: AsyncSession, bot: Bot) -> None:
+async def cmd_start(message: Message, session: AsyncSession, business: BusinessConfig) -> None:
     if message.from_user:
         await upsert_user(
             session,
@@ -23,29 +19,29 @@ async def cmd_start(message: Message, session: AsyncSession, bot: Bot) -> None:
             full_name=message.from_user.full_name,
             username=message.from_user.username,
         )
-    await message.answer(_biz(bot).welcome_html(), reply_markup=main_menu_kb())
+    await message.answer(business.welcome_html(), reply_markup=main_menu_kb())
 
 
 @router.callback_query(F.data == "main_menu")
-async def cb_main_menu(callback: CallbackQuery, bot: Bot) -> None:
+async def cb_main_menu(callback: CallbackQuery, business: BusinessConfig) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        _biz(bot).welcome_html(), reply_markup=main_menu_kb()
+        business.welcome_html(), reply_markup=main_menu_kb()
     )
     await callback.answer()
 
 
 @router.callback_query(F.data == "about")
-async def cb_about(callback: CallbackQuery, bot: Bot) -> None:
+async def cb_about(callback: CallbackQuery, business: BusinessConfig) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        _biz(bot).about_html(), reply_markup=back_to_menu_kb()
+        business.about_html(), reply_markup=back_to_menu_kb()
     )
     await callback.answer()
 
 
 @router.callback_query(F.data == "contacts")
-async def cb_contacts(callback: CallbackQuery, bot: Bot) -> None:
+async def cb_contacts(callback: CallbackQuery, business: BusinessConfig) -> None:
     await callback.message.edit_text(  # type: ignore[union-attr]
-        _biz(bot).contacts_html(), reply_markup=back_to_menu_kb()
+        business.contacts_html(), reply_markup=back_to_menu_kb()
     )
     await callback.answer()
 

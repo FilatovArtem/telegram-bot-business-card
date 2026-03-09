@@ -37,9 +37,8 @@ async def main() -> None:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode="HTML"),
     )
-    bot["business"] = load_business_config()
-
     dp = Dispatcher()
+    dp["business"] = load_business_config()
 
     dp.update.middleware(DbSessionMiddleware(session_pool=async_session))
     dp.include_router(setup_routers())
