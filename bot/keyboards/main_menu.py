@@ -5,10 +5,7 @@ from aiogram.types import InlineKeyboardMarkup
 def main_menu_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                Btn(text="\U0001f370 Каталог", callback_data="catalog"),
-                Btn(text="\U0001f4dd Записаться", callback_data="catalog"),
-            ],
+            [Btn(text="\U0001f370 Каталог", callback_data="catalog")],
             [
                 Btn(
                     text="\u2139\ufe0f \u041e \u043d\u0430\u0441",
