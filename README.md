@@ -1,28 +1,25 @@
-# SweetDream Bot - Telegram-бот для кондитерской
+# SweetDream Bot — Telegram-бот для кондитерской
 
-Telegram-бот для малого бизнеса: каталог товаров, онлайн-запись, уведомления администратору, рассылка.
+[![CI](https://github.com/FilatovArtem/telegram-bot-business-card/actions/workflows/ci.yml/badge.svg)](https://github.com/FilatovArtem/telegram-bot-business-card/actions)
+
+Telegram-бот для малого бизнеса: каталог товаров, онлайн-запись, управление заявками и каталогом через админ-панель.
 
 ## Проблема
 
 Малый бизнес теряет клиентов, принимая заявки только по телефону. Бот работает 24/7, показывает каталог и принимает заявки автоматически.
 
-## Решение
-
-Telegram-бот с каталогом товаров, пошаговой формой записи (FSM), уведомлениями администратору и админ-панелью для управления заявками.
-
 ## Возможности
 
-- **Каталог** - категории, карточки товаров с фото, навигация inline-кнопками
-- **Запись** - пошаговая форма (FSM): услуга -> имя -> телефон -> дата -> подтверждение
-- **Уведомления** - администратор получает заявку в реальном времени
-- **Админ-панель** - статистика, просмотр заявок, рассылка по подписчикам
-- **Валидация** - проверка формата телефона, защита от пустых полей
+- **Каталог** — категории, карточки товаров с навигацией inline-кнопками
+- **Запись** — пошаговая форма (FSM): выбор товара → имя → телефон → дата → подтверждение
+- **Статусы заявок** — new → confirmed → completed / cancelled, с уведомлением клиента
+- **Админ-панель** — статистика, управление заявками по статусам, CRUD каталога, рассылка
+- **Бизнес-конфиг** — название, тексты, контакты вынесены в `data/business.json`
+- **Валидация** — проверка формата телефона, защита от пустых полей
 
 ## Стек
 
-Python 3.12 | aiogram 3 | SQLAlchemy 2 (async) | aiosqlite | Docker
-
-> Production-вариант с PostgreSQL: раскомментируйте секцию в `docker-compose.yml` и измените `DATABASE_URL`.
+Python 3.12 · aiogram 3 · SQLAlchemy 2 (async) · Alembic · aiosqlite · pydantic-settings · Docker
 
 ## Быстрый старт
 
@@ -31,15 +28,15 @@ git clone https://github.com/FilatovArtem/telegram-bot-business-card.git
 cd telegram-bot-business-card
 cp .env.example .env
 # Заполните BOT_TOKEN и ADMIN_IDS в .env
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Без Docker
 
 ```bash
 pip install uv
-uv pip install .
-python -m bot
+uv sync
+uv run python -m bot
 ```
 
 ## Архитектура
@@ -49,26 +46,31 @@ graph TD
     U[User] -->|message| BOT[aiogram Bot]
     BOT --> MW[DB Middleware]
     MW --> R{Router}
-    R --> START[/start - меню]
+    R --> START[/start — меню]
     R --> CAT[Каталог]
     R --> BOOK[Запись FSM]
     R --> ADM[Админ-панель]
+    R --> ACAT[Управление каталогом]
     BOOK -->|уведомление| ADMIN[Admin Chat]
-    CAT --> DB[(SQLite/PostgreSQL)]
+    ADM -->|смена статуса| U
+    CAT --> DB[(SQLite / PostgreSQL)]
     BOOK --> DB
+    ADM --> DB
+    ACAT --> DB
 ```
 
 ## Структура проекта
 
 ```
 bot/
-├── __main__.py       # Точка входа
+├── __main__.py       # Точка входа, загрузка конфига
 ├── config.py         # Pydantic Settings
+├── filters.py        # AdminFilter (shared)
 ├── db/               # SQLAlchemy models + repositories
-├── handlers/         # Обработчики команд и callback
+├── handlers/         # start, catalog, booking, admin, admin_catalog
 ├── keyboards/        # Inline-клавиатуры
 ├── middlewares/       # DB session injection
-└── services/         # Бизнес-логика
+└── services/         # Бизнес-логика, BusinessConfig
 ```
 
 ## Команды бота
@@ -89,4 +91,4 @@ bot/
 
 ## Автор
 
-Артем Филатов | Мехмат МГУ | [@Siki_sing](https://t.me/Siki_sing)
+Артем Филатов · Мехмат МГУ · [@Siki_sing](https://t.me/Siki_sing)
