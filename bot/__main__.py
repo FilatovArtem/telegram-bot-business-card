@@ -25,14 +25,13 @@ def run_migrations() -> None:
     command.upgrade(alembic_cfg, "head")
 
 
-async def on_startup() -> None:
+
+async def main() -> None:
     run_migrations()
     async with async_session() as session:
         await seed_catalog(session)
     logger.info("Database initialized and seeded")
 
-
-async def main() -> None:
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode="HTML"),
@@ -42,8 +41,6 @@ async def main() -> None:
 
     dp.update.middleware(DbSessionMiddleware(session_pool=async_session))
     dp.include_router(setup_routers())
-
-    dp.startup.register(on_startup)
 
     logger.info("Bot starting...")
     await dp.start_polling(bot)
