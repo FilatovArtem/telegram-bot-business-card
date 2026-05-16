@@ -1,7 +1,11 @@
 import json
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+
+class BusinessConfigError(RuntimeError):
+    """Raised when business config can't be loaded or is invalid."""
 
 
 class ContactsConfig(BaseModel):
@@ -35,5 +39,15 @@ class BusinessConfig(BaseModel):
 
 
 def load_business_config(path: str = "data/business.json") -> BusinessConfig:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return BusinessConfig.model_validate(data)
+    config_path = Path(path)
+    if not config_path.exists():
+        raise BusinessConfigError(f"Business config not found: {path}")
+    try:
+        raw = config_path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise BusinessConfigError(f"Invalid JSON in {path}: {e}") from e
+    try:
+        return BusinessConfig.model_validate(data)
+    except ValidationError as e:
+        raise BusinessConfigError(f"Business config schema invalid: {e}") from e

@@ -1,17 +1,23 @@
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db.repositories import upsert_user
+from bot.handlers._utils import cb_message
 from bot.keyboards.main_menu import back_to_menu_kb, main_menu_kb
 from bot.services.business import BusinessConfig
+from bot.services.messages import Msg
 
 router = Router()
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, session: AsyncSession, business: BusinessConfig) -> None:
+async def cmd_start(
+    message: Message, session: AsyncSession, business: BusinessConfig, state: FSMContext
+) -> None:
+    await state.clear()
     if message.from_user:
         await upsert_user(
             session,
@@ -22,27 +28,27 @@ async def cmd_start(message: Message, session: AsyncSession, business: BusinessC
     await message.answer(business.welcome_html(), reply_markup=main_menu_kb())
 
 
+@router.message(Command("cancel"))
+async def cmd_cancel_global(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer(Msg.CANCEL_AND_RETURN, reply_markup=main_menu_kb())
+
+
 @router.callback_query(F.data == "main_menu")
 async def cb_main_menu(callback: CallbackQuery, business: BusinessConfig) -> None:
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        business.welcome_html(), reply_markup=main_menu_kb()
-    )
+    await cb_message(callback).edit_text(business.welcome_html(), reply_markup=main_menu_kb())
     await callback.answer()
 
 
 @router.callback_query(F.data == "about")
 async def cb_about(callback: CallbackQuery, business: BusinessConfig) -> None:
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        business.about_html(), reply_markup=back_to_menu_kb()
-    )
+    await cb_message(callback).edit_text(business.about_html(), reply_markup=back_to_menu_kb())
     await callback.answer()
 
 
 @router.callback_query(F.data == "contacts")
 async def cb_contacts(callback: CallbackQuery, business: BusinessConfig) -> None:
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        business.contacts_html(), reply_markup=back_to_menu_kb()
-    )
+    await cb_message(callback).edit_text(business.contacts_html(), reply_markup=back_to_menu_kb())
     await callback.answer()
 
 
