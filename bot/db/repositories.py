@@ -90,7 +90,7 @@ async def get_booking(session: AsyncSession, booking_id: int) -> Booking | None:
 
 async def get_bookings_by_status(session: AsyncSession, status: str) -> list[Booking]:
     result = await session.execute(
-        select(Booking).where(Booking.status == status).order_by(Booking.created_at.desc())
+        select(Booking).where(Booking.status == status).order_by(Booking.created_at.desc(), Booking.id.desc())
     )
     return list(result.scalars().all())
 
