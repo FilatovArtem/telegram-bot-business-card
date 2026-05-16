@@ -18,6 +18,7 @@ from bot.db.repositories import (
     update_product,
 )
 from bot.filters import AdminFilter
+from bot.handlers._utils import cb_data, cb_int, cb_message
 from bot.keyboards.admin import (
     admin_categories_kb,
     admin_category_kb,
@@ -25,6 +26,7 @@ from bot.keyboards.admin import (
     admin_product_kb,
     admin_products_kb,
 )
+from bot.services.messages import Msg
 
 router = Router()
 router.message.filter(AdminFilter())
@@ -64,7 +66,7 @@ _ALL_STATES = [
 @router.message(Command("cancel"), *_ALL_STATES)
 async def cmd_cancel_catalog(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("\u274c Действие отменено.", reply_markup=admin_menu_kb())
+    await message.answer(Msg.ACTION_CANCELLED, reply_markup=admin_menu_kb())
 
 
 # ── Category list ─────────────────────────────────────────────────
@@ -73,7 +75,7 @@ async def cmd_cancel_catalog(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "admin:catalog")
 async def cb_admin_catalog(callback: CallbackQuery, session: AsyncSession) -> None:
     categories = await get_categories(session)
-    await callback.message.edit_text(  # type: ignore[union-attr]
+    await cb_message(callback).edit_text(
         "\U0001f4e6 <b>Управление каталогом</b>",
         reply_markup=admin_categories_kb(categories),
     )
@@ -85,16 +87,17 @@ async def cb_admin_catalog(callback: CallbackQuery, session: AsyncSession) -> No
 
 @router.callback_query(F.data.regexp(r"^admin:cat:\d+$"))
 async def cb_category_card(callback: CallbackQuery, session: AsyncSession) -> None:
-    category_id = int(callback.data.split(":")[2])  # type: ignore[union-attr]
+    category_id = cb_int(cb_data(callback), 2)
+    if category_id is None:
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
+        return
     category = await get_category(session, category_id)
     if category is None:
-        await callback.answer("Категория не найдена")
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
         return
     products = await get_products_by_category(session, category_id)
     text = f"{category.emoji} <b>{category.name}</b>\n\nТоваров: {len(products)}"
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        text, reply_markup=admin_category_kb(category)
-    )
+    await cb_message(callback).edit_text(text, reply_markup=admin_category_kb(category))
     await callback.answer()
 
 
@@ -103,9 +106,7 @@ async def cb_category_card(callback: CallbackQuery, session: AsyncSession) -> No
 
 @router.callback_query(F.data == "admin:cat:add")
 async def cb_cat_add_start(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "\u2795 Введите название новой категории:"
-    )
+    await cb_message(callback).edit_text("➕ Введите название новой категории:")
     await state.set_state(CategoryForm.name)
     await callback.answer()
 
@@ -114,7 +115,7 @@ async def cb_cat_add_start(callback: CallbackQuery, state: FSMContext) -> None:
 async def process_cat_name(message: Message, state: FSMContext) -> None:
     name = (message.text or "").strip()
     if len(name) < 2:
-        await message.answer("Название слишком короткое. Попробуйте ещё раз:")
+        await message.answer(Msg.NAME_TOO_SHORT_RETRY)
         return
     await state.update_data(name=name)
     await message.answer("Введите эмодзи для категории (или отправьте . чтобы пропустить):")
@@ -130,7 +131,7 @@ async def process_cat_emoji(message: Message, state: FSMContext, session: AsyncS
     category = await create_category(session, name=data["name"], emoji=emoji)
     await state.clear()
     await message.answer(
-        f"\u2705 Категория «{category.emoji} {category.name}» создана.",
+        Msg.CATEGORY_CREATED.format(emoji=category.emoji, name=category.name),
         reply_markup=admin_category_kb(category),
     )
 
@@ -140,11 +141,12 @@ async def process_cat_emoji(message: Message, state: FSMContext, session: AsyncS
 
 @router.callback_query(F.data.startswith("admin:cat:edit:"))
 async def cb_cat_edit_start(callback: CallbackQuery, state: FSMContext) -> None:
-    category_id = int(callback.data.split(":")[3])  # type: ignore[union-attr]
+    category_id = cb_int(cb_data(callback), 3)
+    if category_id is None:
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
+        return
     await state.update_data(category_id=category_id)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "\u270f\ufe0f Введите новое название категории:"
-    )
+    await cb_message(callback).edit_text("✏️ Введите новое название категории:")
     await state.set_state(CategoryEditForm.name)
     await callback.answer()
 
@@ -153,7 +155,7 @@ async def cb_cat_edit_start(callback: CallbackQuery, state: FSMContext) -> None:
 async def process_cat_edit_name(message: Message, state: FSMContext) -> None:
     name = (message.text or "").strip()
     if len(name) < 2:
-        await message.answer("Название слишком короткое. Попробуйте ещё раз:")
+        await message.answer(Msg.NAME_TOO_SHORT_RETRY)
         return
     await state.update_data(name=name)
     await message.answer("Введите новый эмодзи (или . чтобы убрать):")
@@ -169,10 +171,10 @@ async def process_cat_edit_emoji(message: Message, state: FSMContext, session: A
     category = await update_category(session, data["category_id"], name=data["name"], emoji=emoji)
     await state.clear()
     if category is None:
-        await message.answer("\u274c Категория не найдена.")
+        await message.answer(Msg.NOT_FOUND_CATEGORY)
         return
     await message.answer(
-        f"\u2705 Категория обновлена: «{category.emoji} {category.name}»",
+        Msg.CATEGORY_UPDATED.format(emoji=category.emoji, name=category.name),
         reply_markup=admin_category_kb(category),
     )
 
@@ -182,14 +184,17 @@ async def process_cat_edit_emoji(message: Message, state: FSMContext, session: A
 
 @router.callback_query(F.data.startswith("admin:cat:delete:"))
 async def cb_cat_delete(callback: CallbackQuery, session: AsyncSession) -> None:
-    category_id = int(callback.data.split(":")[3])  # type: ignore[union-attr]
+    category_id = cb_int(cb_data(callback), 3)
+    if category_id is None:
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
+        return
     deleted = await delete_category(session, category_id)
     if not deleted:
-        await callback.answer("Нельзя удалить: в категории есть товары", show_alert=True)
+        await callback.answer(Msg.CATEGORY_HAS_PRODUCTS, show_alert=True)
         return
     categories = await get_categories(session)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "\u2705 Категория удалена.\n\n\U0001f4e6 <b>Управление каталогом</b>",
+    await cb_message(callback).edit_text(
+        f"{Msg.CATEGORY_DELETED}\n\n\U0001f4e6 <b>Управление каталогом</b>",
         reply_markup=admin_categories_kb(categories),
     )
     await callback.answer()
@@ -200,16 +205,17 @@ async def cb_cat_delete(callback: CallbackQuery, session: AsyncSession) -> None:
 
 @router.callback_query(F.data.startswith("admin:cat:products:"))
 async def cb_category_products(callback: CallbackQuery, session: AsyncSession) -> None:
-    category_id = int(callback.data.split(":")[3])  # type: ignore[union-attr]
+    category_id = cb_int(cb_data(callback), 3)
+    if category_id is None:
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
+        return
     category = await get_category(session, category_id)
     if category is None:
-        await callback.answer("Категория не найдена")
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
         return
     products = await get_products_by_category(session, category_id)
     text = f"{category.emoji} <b>{category.name}</b> — товары:"
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        text, reply_markup=admin_products_kb(products, category_id)
-    )
+    await cb_message(callback).edit_text(text, reply_markup=admin_products_kb(products, category_id))
     await callback.answer()
 
 
@@ -218,15 +224,16 @@ async def cb_category_products(callback: CallbackQuery, session: AsyncSession) -
 
 @router.callback_query(F.data.regexp(r"^admin:prod:\d+$"))
 async def cb_product_card(callback: CallbackQuery, session: AsyncSession) -> None:
-    product_id = int(callback.data.split(":")[2])  # type: ignore[union-attr]
+    product_id = cb_int(cb_data(callback), 2)
+    if product_id is None:
+        await callback.answer(Msg.NOT_FOUND_PRODUCT)
+        return
     product = await get_product(session, product_id)
     if product is None:
-        await callback.answer("Товар не найден")
+        await callback.answer(Msg.NOT_FOUND_PRODUCT)
         return
-    text = f"<b>{product.name}</b>\n\n{product.description}\n\n\U0001f4b0 Цена: {product.price} \u20bd"
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        text, reply_markup=admin_product_kb(product)
-    )
+    text = f"<b>{product.name}</b>\n\n{product.description}\n\n\U0001f4b0 Цена: {product.price} ₽"
+    await cb_message(callback).edit_text(text, reply_markup=admin_product_kb(product))
     await callback.answer()
 
 
@@ -235,11 +242,12 @@ async def cb_product_card(callback: CallbackQuery, session: AsyncSession) -> Non
 
 @router.callback_query(F.data.startswith("admin:prod:add:"))
 async def cb_prod_add_start(callback: CallbackQuery, state: FSMContext) -> None:
-    category_id = int(callback.data.split(":")[3])  # type: ignore[union-attr]
+    category_id = cb_int(cb_data(callback), 3)
+    if category_id is None:
+        await callback.answer(Msg.NOT_FOUND_CATEGORY)
+        return
     await state.update_data(category_id=category_id)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "\u2795 Введите название товара:"
-    )
+    await cb_message(callback).edit_text("➕ Введите название товара:")
     await state.set_state(ProductForm.name)
     await callback.answer()
 
@@ -248,7 +256,7 @@ async def cb_prod_add_start(callback: CallbackQuery, state: FSMContext) -> None:
 async def process_prod_name(message: Message, state: FSMContext) -> None:
     name = (message.text or "").strip()
     if len(name) < 2:
-        await message.answer("Название слишком короткое. Попробуйте ещё раз:")
+        await message.answer(Msg.NAME_TOO_SHORT_RETRY)
         return
     await state.update_data(name=name)
     await message.answer("Введите описание товара:")
@@ -267,7 +275,7 @@ async def process_prod_desc(message: Message, state: FSMContext) -> None:
 async def process_prod_price(message: Message, state: FSMContext, session: AsyncSession) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
-        await message.answer("Введите число:")
+        await message.answer(Msg.ENTER_NUMBER)
         return
     data = await state.get_data()
     product = await create_product(
@@ -279,7 +287,7 @@ async def process_prod_price(message: Message, state: FSMContext, session: Async
     )
     await state.clear()
     await message.answer(
-        f"\u2705 Товар «{product.name}» добавлен ({product.price} \u20bd).",
+        Msg.PRODUCT_CREATED.format(name=product.name, price=product.price),
         reply_markup=admin_product_kb(product),
     )
 
@@ -289,11 +297,12 @@ async def process_prod_price(message: Message, state: FSMContext, session: Async
 
 @router.callback_query(F.data.startswith("admin:prod:edit:"))
 async def cb_prod_edit_start(callback: CallbackQuery, state: FSMContext) -> None:
-    product_id = int(callback.data.split(":")[3])  # type: ignore[union-attr]
+    product_id = cb_int(cb_data(callback), 3)
+    if product_id is None:
+        await callback.answer(Msg.NOT_FOUND_PRODUCT)
+        return
     await state.update_data(product_id=product_id)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "\u270f\ufe0f Введите новое название товара:"
-    )
+    await cb_message(callback).edit_text("✏️ Введите новое название товара:")
     await state.set_state(ProductEditForm.name)
     await callback.answer()
 
@@ -302,7 +311,7 @@ async def cb_prod_edit_start(callback: CallbackQuery, state: FSMContext) -> None
 async def process_prod_edit_name(message: Message, state: FSMContext) -> None:
     name = (message.text or "").strip()
     if len(name) < 2:
-        await message.answer("Название слишком короткое. Попробуйте ещё раз:")
+        await message.answer(Msg.NAME_TOO_SHORT_RETRY)
         return
     await state.update_data(name=name)
     await message.answer("Введите новое описание:")
@@ -321,7 +330,7 @@ async def process_prod_edit_desc(message: Message, state: FSMContext) -> None:
 async def process_prod_edit_price(message: Message, state: FSMContext, session: AsyncSession) -> None:
     text = (message.text or "").strip()
     if not text.isdigit():
-        await message.answer("Введите число:")
+        await message.answer(Msg.ENTER_NUMBER)
         return
     data = await state.get_data()
     product = await update_product(
@@ -333,10 +342,10 @@ async def process_prod_edit_price(message: Message, state: FSMContext, session: 
     )
     await state.clear()
     if product is None:
-        await message.answer("\u274c Товар не найден.")
+        await message.answer(Msg.NOT_FOUND_PRODUCT)
         return
     await message.answer(
-        f"\u2705 Товар обновлён: «{product.name}» ({product.price} \u20bd)",
+        Msg.PRODUCT_UPDATED.format(name=product.name, price=product.price),
         reply_markup=admin_product_kb(product),
     )
 
@@ -346,16 +355,19 @@ async def process_prod_edit_price(message: Message, state: FSMContext, session: 
 
 @router.callback_query(F.data.startswith("admin:prod:delete:"))
 async def cb_prod_delete(callback: CallbackQuery, session: AsyncSession) -> None:
-    product_id = int(callback.data.split(":")[3])  # type: ignore[union-attr]
+    product_id = cb_int(cb_data(callback), 3)
+    if product_id is None:
+        await callback.answer(Msg.NOT_FOUND_PRODUCT)
+        return
     product = await get_product(session, product_id)
     if product is None:
-        await callback.answer("Товар не найден")
+        await callback.answer(Msg.NOT_FOUND_PRODUCT)
         return
     category_id = product.category_id
     await delete_product(session, product_id)
     products = await get_products_by_category(session, category_id)
-    await callback.message.edit_text(  # type: ignore[union-attr]
-        "\u2705 Товар удалён.",
+    await cb_message(callback).edit_text(
+        Msg.PRODUCT_DELETED,
         reply_markup=admin_products_kb(products, category_id),
     )
     await callback.answer()
