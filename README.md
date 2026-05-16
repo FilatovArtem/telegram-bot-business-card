@@ -119,7 +119,8 @@ bot/
 
 ## Деплой
 
-См. [docs/deploy.md](docs/deploy.md) — гайд по Hetzner CX22 / Timeweb + бэкапы + опциональный Postgres.
+- VPS (Hetzner / Timeweb / любой Docker host): [docs/deploy.md](docs/deploy.md)
+- Auto-deploy на NixOS home server из GitHub Actions: [docs/deploy-nixos.md](docs/deploy-nixos.md)
 
 ## Разработка
 
