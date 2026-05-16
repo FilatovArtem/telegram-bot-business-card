@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 from sqlalchemy import select
@@ -6,18 +7,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db.models import Category, Product
 
+logger = logging.getLogger(__name__)
+
 
 async def seed_catalog(session: AsyncSession, seed_path: str = "data/seed.json") -> None:
     """Load demo catalog data from JSON if DB is empty."""
     result = await session.execute(select(Category).limit(1))
     if result.scalar_one_or_none() is not None:
-        return  # already seeded
+        logger.debug("Catalog already populated, skipping seed")
+        return
 
     path = Path(seed_path)
     if not path.exists():
+        logger.info("Seed file %s not found, skipping (use admin panel to add catalog)", seed_path)
         return
 
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.exception("Malformed JSON in %s, skipping seed", seed_path)
+        return
 
     for cat_data in data["categories"]:
         category = Category(
@@ -39,3 +48,4 @@ async def seed_catalog(session: AsyncSession, seed_path: str = "data/seed.json")
             session.add(product)
 
     await session.commit()
+    logger.info("Seeded %d categories from %s", len(data.get("categories", [])), seed_path)

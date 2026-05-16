@@ -1,3 +1,5 @@
+import sys
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
@@ -10,14 +12,34 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
+    @field_validator("bot_token")
+    @classmethod
+    def validate_bot_token(cls, v: str) -> str:
+        if not v or len(v) < 20 or ":" not in v:
+            raise ValueError("BOT_TOKEN invalid (expected: <digits>:<alphanumeric>, min 20 chars)")
+        return v
+
     @field_validator("admin_ids", mode="before")
     @classmethod
     def parse_admin_ids(cls, v: object) -> list[int]:
+        if isinstance(v, int):
+            return [v]
         if isinstance(v, str):
-            return [int(x.strip()) for x in v.split(",") if x.strip()]
+            ids = [int(x.strip()) for x in v.split(",") if x.strip()]
+            if not ids:
+                raise ValueError("ADMIN_IDS must contain at least one admin user ID")
+            return ids
         if isinstance(v, list):
-            return [int(x) for x in v]
-        return []
+            result = [int(x) for x in v]
+            if not result:
+                raise ValueError("ADMIN_IDS must contain at least one admin user ID")
+            return result
+        raise ValueError("ADMIN_IDS must contain at least one admin user ID")
 
 
-settings = Settings()  # type: ignore[call-arg]
+try:
+    # pydantic-settings loads from env at runtime; call-arg is populated via model_config
+    settings = Settings()  # type: ignore[call-arg]
+except ValueError as e:
+    print(f"Configuration error: {e}", file=sys.stderr)
+    raise SystemExit(1) from e
