@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     admin_ids: list[int] = []
     admin_chat_id: int = 0
     database_url: str = "sqlite+aiosqlite:///data/bot.db"
+    # Optional HTTP(S)/SOCKS proxy for outbound Telegram API requests.
+    # Use when the host network blocks api.telegram.org directly.
+    # Example: http://127.0.0.1:10808 (host xray/v2ray HTTP inbound).
+    bot_proxy: str | None = None
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

@@ -4,6 +4,11 @@ services:
     image: telegram-bot-business-card:latest
     container_name: sweetdream-bot
     env_file: .env
+    # network_mode: host lets the bot reach a host-local proxy
+    # (e.g. xray on 127.0.0.1:10808) for environments where api.telegram.org
+    # is blocked by the ISP and Telegram requests must go through a proxy.
+    # Safe for this MVP: bot uses outbound only (long polling), no inbound ports.
+    network_mode: host
     volumes:
       - bot-data:/app/data
     restart: unless-stopped

@@ -23,6 +23,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---- Runtime stage ----
 FROM python:3.12-slim
 
+# procps provides pgrep used by HEALTHCHECK below.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends procps && \
+    rm -rf /var/lib/apt/lists/*
+
 # Non-root user
 RUN groupadd --system --gid 1000 bot && \
     useradd --system --uid 1000 --gid bot --create-home --shell /bin/bash bot

@@ -2,6 +2,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 
 from bot.config import settings
 from bot.db.engine import async_session, engine
@@ -41,9 +42,13 @@ async def run() -> None:
     except Exception:
         logger.exception("Seed failed — continuing without demo data")
 
+    session = AiohttpSession(proxy=settings.bot_proxy) if settings.bot_proxy else None
+    if session is not None:
+        logger.info("Telegram API via proxy: %s", settings.bot_proxy)
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode="HTML"),
+        session=session,
     )
     dp = build_dispatcher(bot)
 
