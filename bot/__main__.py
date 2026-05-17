@@ -7,13 +7,21 @@ from alembic.config import Config
 from bot.config import settings  # noqa: F401 — triggers validators + SystemExit if invalid
 from bot.startup import run
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logging.getLogger("aiogram.event").setLevel(logging.WARNING)
-logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+
+def _configure_logging() -> None:
+    # force=True пересоздаёт handlers — нужно после Alembic fileConfig(),
+    # который иначе оставляет root на WARNING и глушит INFO логи бота.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        force=True,
+    )
+    logging.getLogger("aiogram.event").setLevel(logging.WARNING)
+    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+
+
+_configure_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -28,4 +36,5 @@ if __name__ == "__main__":
     except Exception as e:
         logger.exception("Migration failed — aborting startup")
         raise SystemExit(1) from e
+    _configure_logging()  # restore after Alembic's fileConfig() may have set root to WARNING
     asyncio.run(run())
