@@ -23,11 +23,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---- Runtime stage ----
 FROM python:3.12-slim
 
-# procps provides pgrep used by HEALTHCHECK below.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends procps && \
-    rm -rf /var/lib/apt/lists/*
-
 # Non-root user
 RUN groupadd --system --gid 1000 bot && \
     useradd --system --uid 1000 --gid bot --create-home --shell /bin/bash bot
@@ -48,7 +43,8 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD pgrep -f "python -m bot" > /dev/null || exit 1
+# No HEALTHCHECK: long-polling bot has no HTTP endpoint and slim image lacks pgrep
+# (procps install requires apt access, blocked in some sandboxed networks).
+# Bot reliability is covered by `restart: unless-stopped` in docker-compose.
 
 CMD ["python", "-m", "bot"]
