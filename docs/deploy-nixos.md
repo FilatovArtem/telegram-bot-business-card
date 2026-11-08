@@ -1,29 +1,11 @@
-# Auto-deploy на NixOS home server
+# Ручной деплой на NixOS-сервер
 
-Этот гайд настраивает автодеплой бота из GitHub в существующий контейнер на домашнем сервере (NixOS 25.05 + Docker).
-
-## Архитектура
-
-```
-git push origin main
-       │
-       ▼
-GitHub Actions: CI (ruff + mypy + pytest + docker build)
-       │ (если green)
-       ▼
-GitHub Actions: Deploy (workflow_run trigger)
-       │ SSH
-       ▼
-Сервер: git fetch + reset --hard origin/main + docker compose up -d --build
-       │
-       ▼
-Бот перезапускается с новой версией (HEALTHCHECK + restart: unless-stopped)
-```
+CI автоматически проверяет изменения в `main`. После успешной проверки запустите `Actions → Deploy → Run workflow → main`. Workflow подключится к серверу по SSH и пересоберёт контейнер из `origin/main`.
 
 ## Что уже готово в репо
 
 - `.github/workflows/ci.yml` — линт + тесты + docker build smoke test
-- `.github/workflows/deploy.yml` — auto-deploy после успешного CI
+- `.github/workflows/deploy.yml` — ручной деплой из `main`
 - `Dockerfile` (multi-stage, non-root) + `docker-compose.yml` (healthcheck + restart unless-stopped)
 
 ## Одноразовая подготовка
@@ -115,19 +97,7 @@ docker compose logs -f bot # tail логов; Ctrl+C для выхода
 
 Проверка: в Telegram открыть бота → `/start` → должно прийти главное меню из `data/business.json`.
 
-## Как работает auto-deploy после настройки
-
-1. Локально: `git push origin main`
-2. GitHub Actions автоматически:
-   - Прогон **CI** (ruff + mypy + pytest + docker build smoke)
-   - Если зелёный — триггерится **Deploy** workflow (через `workflow_run`)
-   - Deploy открывает SSH к серверу и выполняет `git pull + docker compose up -d --build`
-   - Health check: контейнер должен стать `healthy` через 30-60s, иначе Docker сам перезапустит
-3. В Telegram бот доступен с новой версией
-
-## Manual ручной деплой / rollback
-
-**Manual trigger:** Actions → Deploy → **Run workflow** (можно даже когда нет push).
+## Откат на предыдущую версию
 
 **Rollback на предыдущий коммит:**
 
@@ -138,7 +108,7 @@ git reset --hard <предыдущий-sha>
 docker compose up -d --build
 ```
 
-После rollback история git сервера и origin/main расходятся. Следующий push в main снова сделает hard reset.
+После rollback история git сервера и origin/main расходятся. Следующий ручной запуск Deploy снова выкатит текущую версию `origin/main`.
 
 ## Логи и диагностика
 
