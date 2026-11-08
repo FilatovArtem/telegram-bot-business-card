@@ -1,6 +1,6 @@
 # SweetDream Bot
 
-> Telegram-бот для малого бизнеса: каталог услуг, онлайн-запись, админ-панель. Готов к запуску за 5 минут. Бизнес-конфиг без правки кода.
+> Telegram-бот для малого бизнеса: каталог услуг, онлайн-запись, админ-панель. Настройки бизнеса вынесены в `data/business.json`.
 
 [![CI](https://github.com/FilatovArtem/telegram-bot-business-card/actions/workflows/ci.yml/badge.svg)](https://github.com/FilatovArtem/telegram-bot-business-card/actions)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
@@ -9,16 +9,7 @@
 ![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-<p align="center">
-  <!-- TODO: пользователь добавит реальные скриншоты после запуска -->
-  <em>Скриншоты добавятся после первого запуска бота.</em>
-</p>
-
-> 💡 SweetDream — выдуманная кондитерская для демо. Чтобы адаптировать под свой бизнес — отредактируйте `data/business.json` (без правки кода).
-
-## Проблема и решение
-
-Малый бизнес теряет клиентов, принимая заявки только по телефону. Бот работает 24/7, показывает каталог и принимает заявки автоматически, уведомляет администратора в Telegram.
+SweetDream - вымышленная кондитерская для демо. Клиент выбирает товар в каталоге и оставляет заявку. Администратор подтверждает её в Telegram, клиент получает уведомление.
 
 ## Возможности
 
@@ -120,7 +111,7 @@ bot/
 ## Деплой
 
 - VPS (Hetzner / Timeweb / любой Docker host): [docs/deploy.md](docs/deploy.md)
-- Auto-deploy на NixOS home server из GitHub Actions: [docs/deploy-nixos.md](docs/deploy-nixos.md)
+- Ручной деплой на NixOS-сервер через GitHub Actions: [docs/deploy-nixos.md](docs/deploy-nixos.md)
 
 ## Разработка
 
@@ -137,7 +128,7 @@ Pre-commit hooks: `uv run pre-commit install`
 
 ## Автор
 
-Артем Филатов · Мехмат МГУ · [@Siki_sing](https://t.me/Siki_sing)
+Артём Филатов · [@sikisingg](https://t.me/sikisingg)
 
 ## Лицензия
 
